@@ -1,112 +1,313 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const { PDFDocument } = require("pdf-lib");
-const cors = require("cors");
-const path = require("path");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PDF MERGER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static("public"));
-
-// ✅ IMPORTANT: Always create uploads folder at startup
-const uploadDir = path.join(__dirname, "uploads");
-
-try {
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        console.log("Uploads folder created");
-    }
-} catch (err) {
-    console.error("Error creating uploads folder:", err);
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#0f172a,#020617);
+    color: white;
+    overflow-x: hidden;
 }
 
-// Storage config
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
+/* HERO */
+.hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+/* TITLE */
+.title {
+    font-size: 64px;
+    font-weight: bold;
+    background: linear-gradient(90deg,#6366f1,#9333ea,#6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glow 4s infinite linear;
+}
+
+@keyframes glow {
+    0% { background-position: 0% }
+    100% { background-position: 200% }
+}
+
+.subtitle {
+    margin-top: 10px;
+    font-size: 20px;
+    color: #cbd5f5;
+}
+
+/* BIG BUTTON */
+.big-btn {
+    margin-top: 30px;
+    padding: 20px 50px;
+    font-size: 22px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(90deg,#ef4444,#dc2626);
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.big-btn:hover {
+    transform: scale(1.08);
+}
+
+/* PASSWORD */
+.pass-box {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    transition: 0.5s;
+}
+
+.pass-box input {
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+}
+
+.pass-box button {
+    padding: 8px;
+}
+
+.hidden {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+/* MORE OPTIONS */
+.more {
+    margin-top: 30px;
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+/* HIDDEN SECTION */
+#extra {
+    max-height: 0;
+    overflow: hidden;
+    transition: 0.7s;
+}
+
+#extra.show {
+    max-height: 800px;
+}
+
+/* CARDS */
+.card {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+}
+
+/* FILE LIST */
+.file {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+/* 🌸 FLOWER (SUBTLE EFFECT) */
+.flower {
+    position: fixed;
+    top: -40px;
+    font-size: 20px;
+    pointer-events: none;
+    animation: fall 3s linear forwards;
+    opacity: 0.9;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(110vh) rotate(360deg);
+        opacity: 0;
     }
-});
+}
+</style>
+</head>
 
-const upload = multer({ storage });
+<body>
 
-// Passwords
-const USER_PASSWORD = "1234";
-const ADMIN_PASSWORD = "admin123";
+<!-- PASSWORD -->
+<div class="pass-box" id="passBox">
+    <input id="pass" type="password" placeholder="Enter password">
+    <button onclick="login()">Go</button>
+</div>
 
-// Login
-app.post("/login", (req, res) => {
-    res.json({ success: req.body.password === USER_PASSWORD });
-});
+<!-- HERO -->
+<div class="hero">
 
-// PDF Merge
-app.post("/merge", upload.array("pdfs"), async (req, res) => {
-    try {
-        const mergedPdf = await PDFDocument.create();
+<div class="title">Merge PDF files</div>
 
-        for (let file of req.files) {
-            const pdfBytes = fs.readFileSync(file.path);
-            const pdf = await PDFDocument.load(pdfBytes);
-            const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-            pages.forEach(p => mergedPdf.addPage(p));
-        }
+<div class="subtitle">
+Combine PDFs in the order you want with the easiest PDF merger available.
+</div>
 
-        const mergedBytes = await mergedPdf.save();
-        const outputPath = path.join(uploadDir, "merged.pdf");
+<input type="file" id="pdfs" multiple style="display:none">
 
-        fs.writeFileSync(outputPath, mergedBytes);
+<button class="big-btn" onclick="triggerUpload()">
+Select PDF files
+</button>
 
-        res.download(outputPath, () => {
-            fs.unlinkSync(outputPath);
-        });
+<div class="more" onclick="toggleExtra()">
+✨ more options
+</div>
 
-    } catch (err) {
-        console.error("Merge error:", err);
-        res.status(500).send("Merge failed");
+</div>
+
+<!-- EXTRA -->
+<div id="extra">
+
+<div class="card">
+    <h3>hmmm... this is something new, give it a try!</h3>
+    <input type="file" id="file">
+    <button onclick="upload()">Upload</button>
+</div>
+
+<div class="card">
+    <h3>Thanks</h3>
+    <div id="list"></div>
+</div>
+
+</div>
+
+<script>
+
+let loggedIn = false;
+
+function triggerUpload(){
+    if(!loggedIn){
+        alert("Enter password first");
+        return;
     }
-});
+    document.getElementById("pdfs").click();
+}
 
-// Upload
-app.post("/upload", upload.single("file"), (req, res) => {
-    res.json({ message: "Uploaded successfully" });
-});
+async function login() {
+    const password = document.getElementById("pass").value;
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({password})
+    });
+    const data = await res.json();
 
-// List files
-app.get("/files", (req, res) => {
-    try {
-        const files = fs.readdirSync(uploadDir);
-        const filtered = files.filter(f => f.endsWith(".f3d"));
-        res.json(filtered);
-    } catch {
-        res.json([]);
+    if(data.success){
+        loggedIn = true;
+        document.getElementById("passBox").classList.add("hidden");
+        loadFiles();
+    } else {
+        alert("Wrong password");
     }
-});
+}
 
-// Download
-app.get("/download/:name", (req, res) => {
-    res.download(path.join(uploadDir, req.params.name));
-});
+document.getElementById("pdfs").addEventListener("change", merge);
 
-// Delete
-app.post("/delete", (req, res) => {
-    const { filename, adminPassword } = req.body;
+async function merge() {
+    const files = document.getElementById("pdfs").files;
+    const form = new FormData();
 
-    if (adminPassword !== ADMIN_PASSWORD) {
-        return res.json({ success: false });
-    }
-
-    const filePath = path.join(uploadDir, filename);
-    if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+    for(let f of files){
+        form.append("pdfs", f);
     }
 
-    res.json({ success: true });
-});
+    const res = await fetch("/merge", {
+        method: "POST",
+        body: form
+    });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url);
+}
+
+async function upload() {
+    const file = document.getElementById("file").files[0];
+    const form = new FormData();
+    form.append("file", file);
+
+    await fetch("/upload", {
+        method: "POST",
+        body: form
+    });
+
+    loadFiles();
+}
+
+async function loadFiles() {
+    const res = await fetch("/files");
+    const files = await res.json();
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    files.forEach(f => {
+        list.innerHTML += `
+        <div class="file">
+            ${f}
+            <div>
+                <button onclick="download('${f}')">Download</button>
+                <button onclick="del('${f}')">Delete</button>
+            </div>
+        </div>`;
+    });
+}
+
+function download(name){
+    window.open("/download/" + name);
+}
+
+async function del(name){
+    const pass = prompt("Enter admin password:");
+
+    const res = await fetch("/delete", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({filename: name, adminPassword: pass})
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+        loadFiles();
+    } else {
+        alert("Wrong admin password");
+    }
+}
+
+/* 🌸 CLEAN FLOWER EFFECT */
+function toggleExtra(){
+    document.getElementById("extra").classList.toggle("show");
+
+    dropFlower();
+    setTimeout(dropFlower, 2000);
+}
+
+function dropFlower(){
+    const flower = document.createElement("div");
+    flower.className = "flower";
+    flower.innerHTML = "🌸";
+    flower.style.left = Math.random()*100 + "vw";
+
+    document.body.appendChild(flower);
+
+    setTimeout(() => flower.remove(), 3000);
+}
+
+</script>
+
+</body>
+</html>
