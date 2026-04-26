@@ -9,81 +9,120 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #0f172a, #020617);
+    background: radial-gradient(circle at top, #0f172a, #020617);
     color: white;
+    overflow-x: hidden;
 }
 
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 30px;
-}
-
+/* TITLE */
 .title {
     text-align: center;
-    font-size: 52px;
+    font-size: 60px;
     font-weight: bold;
-    margin-bottom: 30px;
-    letter-spacing: 2px;
-    color: #6366f1;
+    margin-top: 40px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg,#6366f1,#9333ea,#6366f1);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 4s infinite linear;
 }
 
+@keyframes shine {
+    0% { background-position: 0% }
+    100% { background-position: 200% }
+}
+
+/* CARD */
 .card {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 25px;
+    border-radius: 16px;
     background: rgba(255,255,255,0.05);
-    padding: 20px;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
 .section-title {
-    font-size: 20px;
+    font-size: 22px;
     margin-bottom: 10px;
     color: #cbd5f5;
 }
 
-input[type="password"],
-input[type="file"] {
-    margin: 10px 0;
-    padding: 12px;
+/* INPUT */
+input {
     width: 100%;
+    padding: 12px;
+    margin: 10px 0;
     border-radius: 8px;
     border: none;
     background: #020617;
     color: white;
 }
 
+/* BUTTON */
 button {
-    padding: 10px 20px;
+    padding: 12px 20px;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(90deg, #6366f1, #9333ea);
+    background: linear-gradient(90deg,#6366f1,#9333ea);
     color: white;
     cursor: pointer;
     transition: 0.3s;
 }
 
 button:hover {
-    transform: scale(1.07);
-    opacity: 0.9;
+    transform: scale(1.08);
 }
 
+/* FILE LIST */
 .file {
     display: flex;
     justify-content: space-between;
-    background: rgba(255,255,255,0.05);
-    padding: 10px;
     margin-top: 10px;
+    padding: 10px;
     border-radius: 8px;
-    align-items: center;
+    background: rgba(255,255,255,0.05);
+}
+
+/* HIDDEN SECTION */
+#extra {
+    max-height: 0;
+    overflow: hidden;
+    transition: 0.7s ease;
+}
+
+#extra.show {
+    max-height: 1000px;
+}
+
+/* MORE BUTTON */
+.more-btn {
+    text-align: center;
+    margin: 30px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+/* FLOWERS */
+.flower {
+    position: fixed;
+    top: -50px;
+    font-size: 24px;
+    animation: fall 3s linear forwards;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
 }
 </style>
 </head>
 
 <body>
-
-<div class="container">
 
 <div class="title">PDF MERGER</div>
 
@@ -101,14 +140,18 @@ button:hover {
     <button onclick="merge()">Merge PDFs</button>
 </div>
 
+<div class="more-btn" onclick="toggleExtra()">✨ More Options ✨</div>
+
+<div id="extra">
+
 <div class="card">
-    <div class="section-title">Upload F3D File</div>
+    <div class="section-title">Hmm… this is something new, give it a try!</div>
     <input type="file" id="file">
     <button onclick="upload()">Upload</button>
 </div>
 
 <div class="card">
-    <div class="section-title">Files</div>
+    <div class="section-title">Thanks</div>
     <div id="list"></div>
 </div>
 
@@ -204,6 +247,25 @@ async function del(name){
     } else {
         alert("Wrong admin password");
     }
+}
+
+/* TOGGLE + FLOWER EFFECT */
+function toggleExtra(){
+    const extra = document.getElementById("extra");
+    extra.classList.toggle("show");
+
+    createFlower();
+    setTimeout(createFlower, 2000);
+}
+
+function createFlower(){
+    const flower = document.createElement("div");
+    flower.className = "flower";
+    flower.innerHTML = "🌸";
+    flower.style.left = Math.random()*100 + "vw";
+    document.body.appendChild(flower);
+
+    setTimeout(()=>flower.remove(),3000);
 }
 </script>
 
