@@ -1,44 +1,31 @@
 const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
-const { PDFDocument } = require("pdf-lib");
-const cors = require("cors");
 const path = require("path");
+const cors = require("cors");
+const { PDFDocument } = require("pdf-lib");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// 📁 Upload folder
+/* FOLDERS */
 const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// 📤 Storage config
+/* STORAGE */
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    }
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, file.originalname)
 });
-
 const upload = multer({ storage });
 
-// 🔐 Passwords
-const USER_PASSWORD = "1234";
-const ADMIN_PASSWORD = "admin123";
+/* PASSWORDS */
+const MAIN_PASS = "1234";
+const DELETE_PASS = "delete";
 
-// 🔐 Login
-app.post("/login", (req, res) => {
-    res.json({ success: req.body.password === USER_PASSWORD });
-});
-
-// 📄 Merge PDFs
+/* MERGE (NO PASSWORD) */
 app.post("/merge", upload.array("pdfs"), async (req, res) => {
     try {
         const mergedPdf = await PDFDocument.create();
@@ -48,6 +35,8 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
             const pdf = await PDFDocument.load(pdfBytes);
             const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             pages.forEach(p => mergedPdf.addPage(p));
+
+            fs.unlinkSync(file.path);
         }
 
         const mergedBytes = await mergedPdf.save();
@@ -57,47 +46,58 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
         res.send(Buffer.from(mergedBytes));
 
     } catch (err) {
-        console.error("Merge error:", err);
-        res.status(500).send("Merge failed");
+        console.log(err);
+        res.status(500).send("Error merging PDFs");
     }
 });
 
-// 📤 Upload (ALL FILE TYPES)
+/* UPLOAD (MAIN PASSWORD REQUIRED) */
 app.post("/upload", upload.single("file"), (req, res) => {
-    res.json({ message: "Uploaded successfully" });
-});
+    const pass = req.headers["password"];
 
-// 📂 List ALL files
-app.get("/files", (req, res) => {
-    try {
-        const files = fs.readdirSync(uploadDir);
-        res.json(files); // ✅ no filtering
-    } catch {
-        res.json([]);
+    if (pass !== MAIN_PASS) {
+        return res.status(403).send("Wrong password");
     }
+
+    res.send("Uploaded");
 });
 
-// ⬇ Download
+/* LIST FILES */
+app.get("/files", (req, res) => {
+    const files = fs.readdirSync(uploadDir);
+    res.json(files);
+});
+
+/* DOWNLOAD (MAIN PASSWORD REQUIRED) */
 app.get("/download/:name", (req, res) => {
-    res.download(path.join(uploadDir, req.params.name));
+    const pass = req.headers["password"];
+
+    if (pass !== MAIN_PASS) {
+        return res.status(403).send("Wrong password");
+    }
+
+    const filePath = path.join(uploadDir, req.params.name);
+    res.download(filePath);
 });
 
-// ❌ Delete
+/* DELETE (DELETE PASSWORD REQUIRED) */
 app.post("/delete", (req, res) => {
-    const { filename, adminPassword } = req.body;
+    const { filename, password } = req.body;
 
-    if (adminPassword !== ADMIN_PASSWORD) {
+    if (password !== DELETE_PASS) {
         return res.json({ success: false });
     }
 
     const filePath = path.join(uploadDir, filename);
+
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
+        res.json({ success: true });
+    } else {
+        res.json({ success: false });
     }
-
-    res.json({ success: true });
 });
 
-// 🚀 Start
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+/* START */
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log("Server running"));
