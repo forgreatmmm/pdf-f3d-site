@@ -1,32 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>PDF + F3D Tool</title>
+<meta charset="UTF-8">
+<title>PDF MERGER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    color: white;
+    overflow-x: hidden;
+}
+
+/* TITLE */
+.title {
+    text-align: center;
+    font-size: 60px;
+    font-weight: bold;
+    margin-top: 40px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg,#6366f1,#9333ea,#6366f1);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 4s infinite linear;
+}
+
+@keyframes shine {
+    0% { background-position: 0% }
+    100% { background-position: 200% }
+}
+
+/* DESCRIPTION */
+.desc {
+    text-align: center;
+    margin-top: 10px;
+    color: #cbd5f5;
+    font-size: 18px;
+}
+
+/* CARD */
+.card {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 25px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+/* INPUT */
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: none;
+    background: #020617;
+    color: white;
+}
+
+/* BUTTON */
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg,#6366f1,#9333ea);
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: bold;
+}
+
+button:hover {
+    transform: scale(1.08);
+}
+
+/* FILE LIST */
+.file {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+}
+
+/* HIDDEN SECTION */
+#extra {
+    max-height: 0;
+    overflow: hidden;
+    transition: 0.7s ease;
+}
+
+#extra.show {
+    max-height: 1000px;
+}
+
+/* MORE BUTTON */
+.more-btn {
+    text-align: center;
+    margin: 30px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+/* FLOWERS */
+.flower {
+    position: fixed;
+    top: -50px;
+    font-size: 24px;
+    animation: fall 3s linear forwards;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+</style>
 </head>
 
 <body>
 
-<h2>Enter Password</h2>
-<input id="pass" type="password">
-<button onclick="login()">Enter</button>
+<div class="title">PDF MERGER</div>
+<div class="desc">
+Combine PDFs in the order you want with the easiest PDF merger available.
+</div>
 
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+    <input id="pass" type="password" placeholder="Enter Password">
+    <button onclick="login()">Enter</button>
+</div>
+
+<!-- MAIN -->
 <div id="main" style="display:none">
 
-<h2>PDF Merge</h2>
-<input type="file" id="pdfs" multiple>
-<button onclick="merge()">Merge PDFs</button>
+<div class="card">
+    <input type="file" id="pdfs" multiple>
+    <button onclick="merge()">Merge PDFs</button>
+</div>
 
-<h2>Upload F3D File</h2>
-<input type="file" id="file">
-<button onclick="upload()">Upload</button>
+<div class="more-btn" onclick="toggleExtra()">✨ More Options ✨</div>
 
-<h3>Thanks</h3>
-<ul id="list"></ul>
+<div id="extra">
+
+<div class="card">
+    <div>Hmm… this is something new, give it a try!</div>
+    <input type="file" id="file">
+    <button onclick="upload()">Upload</button>
+</div>
+
+<div class="card">
+    <div>Thanks</div>
+    <div id="list"></div>
+</div>
+
+</div>
 
 </div>
 
 <script>
 
+/* LOGIN */
 async function login() {
     const password = document.getElementById("pass").value;
 
@@ -40,14 +181,22 @@ async function login() {
 
     if(data.success){
         document.getElementById("main").style.display = "block";
+        document.getElementById("loginCard").style.display = "none";
         loadFiles();
     } else {
         alert("Wrong password");
     }
 }
 
+/* MERGE */
 async function merge() {
     const files = document.getElementById("pdfs").files;
+
+    if(files.length === 0){
+        alert("Select PDFs first");
+        return;
+    }
+
     const form = new FormData();
 
     for(let f of files){
@@ -64,27 +213,31 @@ async function merge() {
     window.open(url);
 }
 
-/* 🔥 FIXED UPLOAD */
+/* UPLOAD FIXED */
 async function upload() {
     const file = document.getElementById("file").files[0];
 
     if(!file){
-        alert("Select file first");
+        alert("Select a file");
         return;
     }
 
     const form = new FormData();
     form.append("file", file);
 
-    await fetch("/upload", {
+    const res = await fetch("/upload", {
         method: "POST",
         body: form
     });
 
-    // 🔥 IMPORTANT FIX (delay for Render)
-    setTimeout(loadFiles, 1000);
+    const data = await res.json();
+    console.log(data);
+
+    // small delay fix (IMPORTANT)
+    setTimeout(loadFiles, 800);
 }
 
+/* LOAD FILES */
 async function loadFiles() {
     const res = await fetch("/files");
     const files = await res.json();
@@ -94,18 +247,22 @@ async function loadFiles() {
 
     files.forEach(f => {
         list.innerHTML += `
-        <li>
+        <div class="file">
             ${f}
-            <button onclick="download('${f}')">Download</button>
-            <button onclick="del('${f}')">Delete</button>
-        </li>`;
+            <div>
+                <button onclick="download('${f}')">Download</button>
+                <button onclick="del('${f}')">Delete</button>
+            </div>
+        </div>`;
     });
 }
 
+/* DOWNLOAD */
 function download(name){
     window.open("/download/" + name);
 }
 
+/* DELETE */
 async function del(name){
     const pass = prompt("Enter admin password:");
 
@@ -124,7 +281,26 @@ async function del(name){
     }
 }
 
-/* AUTO LOAD */
+/* MORE OPTIONS + FLOWERS */
+function toggleExtra(){
+    const extra = document.getElementById("extra");
+    extra.classList.toggle("show");
+
+    createFlower();
+    setTimeout(createFlower, 2000);
+}
+
+function createFlower(){
+    const flower = document.createElement("div");
+    flower.className = "flower";
+    flower.innerHTML = "🌸";
+    flower.style.left = Math.random()*100 + "vw";
+    document.body.appendChild(flower);
+
+    setTimeout(()=>flower.remove(),3000);
+}
+
+/* AUTO LOAD FILES */
 window.onload = loadFiles;
 
 </script>
