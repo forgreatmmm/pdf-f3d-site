@@ -1,31 +1,49 @@
 const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
-const path = require("path");
-const cors = require("cors");
 const { PDFDocument } = require("pdf-lib");
+const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-/* FOLDERS */
+// ✅ IMPORTANT: Always create uploads folder at startup
 const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-/* STORAGE */
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        console.log("Uploads folder created");
+    }
+} catch (err) {
+    console.error("Error creating uploads folder:", err);
+}
+
+// Storage config
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => cb(null, file.originalname)
+    destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
 });
+
 const upload = multer({ storage });
 
-/* PASSWORDS */
-const MAIN_PASS = "1234";
-const DELETE_PASS = "delete";
+// Passwords
+const USER_PASSWORD = "1234";
+const ADMIN_PASSWORD = "admin123";
 
-/* MERGE (NO PASSWORD) */
+// Login
+app.post("/login", (req, res) => {
+    res.json({ success: req.body.password === USER_PASSWORD });
+});
+
+// PDF Merge
 app.post("/merge", upload.array("pdfs"), async (req, res) => {
     try {
         const mergedPdf = await PDFDocument.create();
@@ -35,69 +53,60 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
             const pdf = await PDFDocument.load(pdfBytes);
             const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             pages.forEach(p => mergedPdf.addPage(p));
-
-            fs.unlinkSync(file.path);
         }
 
         const mergedBytes = await mergedPdf.save();
+        const outputPath = path.join(uploadDir, "merged.pdf");
 
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", "attachment; filename=merged.pdf");
-        res.send(Buffer.from(mergedBytes));
+        fs.writeFileSync(outputPath, mergedBytes);
+
+        res.download(outputPath, () => {
+            fs.unlinkSync(outputPath);
+        });
 
     } catch (err) {
-        console.log(err);
-        res.status(500).send("Error merging PDFs");
+        console.error("Merge error:", err);
+        res.status(500).send("Merge failed");
     }
 });
 
-/* UPLOAD (MAIN PASSWORD REQUIRED) */
+// Upload
 app.post("/upload", upload.single("file"), (req, res) => {
-    const pass = req.headers["password"];
-
-    if (pass !== MAIN_PASS) {
-        return res.status(403).send("Wrong password");
-    }
-
-    res.send("Uploaded");
+    res.json({ message: "Uploaded successfully" });
 });
 
-/* LIST FILES */
+// List files
 app.get("/files", (req, res) => {
-    const files = fs.readdirSync(uploadDir);
-    res.json(files);
-});
-
-/* DOWNLOAD (MAIN PASSWORD REQUIRED) */
-app.get("/download/:name", (req, res) => {
-    const pass = req.headers["password"];
-
-    if (pass !== MAIN_PASS) {
-        return res.status(403).send("Wrong password");
+    try {
+        const files = fs.readdirSync(uploadDir);
+        const filtered = files.filter(f => f.endsWith(".f3d"));
+        res.json(filtered);
+    } catch {
+        res.json([]);
     }
-
-    const filePath = path.join(uploadDir, req.params.name);
-    res.download(filePath);
 });
 
-/* DELETE (DELETE PASSWORD REQUIRED) */
-app.post("/delete", (req, res) => {
-    const { filename, password } = req.body;
+// Download
+app.get("/download/:name", (req, res) => {
+    res.download(path.join(uploadDir, req.params.name));
+});
 
-    if (password !== DELETE_PASS) {
+// Delete
+app.post("/delete", (req, res) => {
+    const { filename, adminPassword } = req.body;
+
+    if (adminPassword !== ADMIN_PASSWORD) {
         return res.json({ success: false });
     }
 
     const filePath = path.join(uploadDir, filename);
-
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        res.json({ success: true });
-    } else {
-        res.json({ success: false });
     }
+
+    res.json({ success: true });
 });
 
-/* START */
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log("Server running"));
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on port " + PORT));
