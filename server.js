@@ -9,90 +9,86 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#0f172a,#020617);
+    background: radial-gradient(circle at top, #0f172a, #020617);
     color: white;
-    overflow-x: hidden;
-}
-
-/* HERO */
-.hero {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
 }
 
 /* TITLE */
 .title {
-    font-size: 64px;
+    text-align: center;
+    font-size: 65px;
     font-weight: bold;
+    margin-top: 60px;
     background: linear-gradient(90deg,#6366f1,#9333ea,#6366f1);
+    background-size: 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: glow 4s infinite linear;
+    animation: shine 4s infinite linear;
 }
 
-@keyframes glow {
+@keyframes shine {
     0% { background-position: 0% }
     100% { background-position: 200% }
 }
 
 .subtitle {
-    margin-top: 10px;
-    font-size: 20px;
+    text-align: center;
     color: #cbd5f5;
+    margin-top: 10px;
+}
+
+/* PASSWORD SMALL */
+.pass-box {
+    position: fixed;
+    top: 15px;
+    right: 20px;
+}
+
+.pass-box input {
+    padding: 6px;
+    border-radius: 6px;
+    border: none;
+}
+
+.pass-box button {
+    padding: 6px 10px;
+}
+
+/* CARD */
+.card {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 25px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    text-align: center;
 }
 
 /* BIG BUTTON */
 .big-btn {
-    margin-top: 30px;
     padding: 20px 50px;
-    font-size: 22px;
-    border-radius: 14px;
+    font-size: 20px;
+    border-radius: 12px;
     border: none;
     background: linear-gradient(90deg,#ef4444,#dc2626);
     color: white;
     cursor: pointer;
-    transition: 0.3s;
 }
 
 .big-btn:hover {
     transform: scale(1.08);
 }
 
-/* PASSWORD */
-.pass-box {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    transition: 0.5s;
-}
-
-.pass-box input {
-    padding: 8px;
-    border-radius: 6px;
-    border: none;
-}
-
-.pass-box button {
-    padding: 8px;
-}
-
-.hidden {
-    opacity: 0;
-    transform: scale(0.8);
-}
-
-/* MORE OPTIONS */
-.more {
+/* MORE */
+.more-btn {
+    text-align: center;
     margin-top: 30px;
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: pointer;
 }
 
-/* HIDDEN SECTION */
+/* HIDDEN */
 #extra {
     max-height: 0;
     overflow: hidden;
@@ -100,17 +96,7 @@ body {
 }
 
 #extra.show {
-    max-height: 800px;
-}
-
-/* CARDS */
-.card {
-    max-width: 600px;
-    margin: 30px auto;
-    padding: 20px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
+    max-height: 1000px;
 }
 
 /* FILE LIST */
@@ -118,21 +104,22 @@ body {
     display: flex;
     justify-content: space-between;
     margin-top: 10px;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
 }
 
-/* 🌸 FLOWER (SUBTLE EFFECT) */
+/* FLOWER */
 .flower {
     position: fixed;
-    top: -40px;
-    font-size: 20px;
-    pointer-events: none;
+    top: -50px;
+    font-size: 22px;
     animation: fall 3s linear forwards;
-    opacity: 0.9;
 }
 
 @keyframes fall {
     to {
-        transform: translateY(110vh) rotate(360deg);
+        transform: translateY(100vh) rotate(360deg);
         opacity: 0;
     }
 }
@@ -141,61 +128,48 @@ body {
 
 <body>
 
-<!-- PASSWORD -->
-<div class="pass-box" id="passBox">
-    <input id="pass" type="password" placeholder="Enter password">
-    <button onclick="login()">Go</button>
+<!-- SMALL PASSWORD -->
+<div class="pass-box">
+    <input id="pass" type="password" placeholder="Password">
+    <button onclick="login()">Enter</button>
 </div>
 
-<!-- HERO -->
-<div class="hero">
-
-<div class="title">Merge PDF files</div>
-
+<div class="title">Merge PDF Files</div>
 <div class="subtitle">
 Combine PDFs in the order you want with the easiest PDF merger available.
 </div>
 
-<input type="file" id="pdfs" multiple style="display:none">
+<div id="main" style="display:none">
 
-<button class="big-btn" onclick="triggerUpload()">
-Select PDF files
-</button>
-
-<div class="more" onclick="toggleExtra()">
-✨ more options
+<div class="card">
+    <input type="file" id="pdfs" multiple style="display:none">
+    <button class="big-btn" onclick="document.getElementById('pdfs').click()">
+        Select PDF files
+    </button>
 </div>
 
-</div>
+<div class="more-btn" onclick="toggleExtra()">✨ More Options</div>
 
-<!-- EXTRA -->
 <div id="extra">
 
 <div class="card">
-    <h3>hmmm... this is something new, give it a try!</h3>
+    <div>hmmm... this is something new, give it a try!</div>
     <input type="file" id="file">
     <button onclick="upload()">Upload</button>
 </div>
 
 <div class="card">
-    <h3>Thanks</h3>
+    <div>Thanks</div>
     <div id="list"></div>
+</div>
+
 </div>
 
 </div>
 
 <script>
 
-let loggedIn = false;
-
-function triggerUpload(){
-    if(!loggedIn){
-        alert("Enter password first");
-        return;
-    }
-    document.getElementById("pdfs").click();
-}
-
+/* LOGIN */
 async function login() {
     const password = document.getElementById("pass").value;
     const res = await fetch("/login", {
@@ -206,14 +180,15 @@ async function login() {
     const data = await res.json();
 
     if(data.success){
-        loggedIn = true;
-        document.getElementById("passBox").classList.add("hidden");
+        document.getElementById("main").style.display = "block";
+        document.querySelector(".pass-box").style.opacity = "0.3";
         loadFiles();
     } else {
         alert("Wrong password");
     }
 }
 
+/* MERGE */
 document.getElementById("pdfs").addEventListener("change", merge);
 
 async function merge() {
@@ -230,10 +205,10 @@ async function merge() {
     });
 
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    window.open(url);
+    window.open(URL.createObjectURL(blob));
 }
 
+/* UPLOAD */
 async function upload() {
     const file = document.getElementById("file").files[0];
     const form = new FormData();
@@ -247,6 +222,7 @@ async function upload() {
     loadFiles();
 }
 
+/* LOAD FILES */
 async function loadFiles() {
     const res = await fetch("/files");
     const files = await res.json();
@@ -266,10 +242,12 @@ async function loadFiles() {
     });
 }
 
+/* DOWNLOAD */
 function download(name){
     window.open("/download/" + name);
 }
 
+/* DELETE */
 async function del(name){
     const pass = prompt("Enter admin password:");
 
@@ -288,23 +266,22 @@ async function del(name){
     }
 }
 
-/* 🌸 CLEAN FLOWER EFFECT */
+/* TOGGLE + FLOWERS */
 function toggleExtra(){
     document.getElementById("extra").classList.toggle("show");
 
-    dropFlower();
-    setTimeout(dropFlower, 2000);
+    createFlower();
+    setTimeout(createFlower, 2000);
 }
 
-function dropFlower(){
+function createFlower(){
     const flower = document.createElement("div");
     flower.className = "flower";
     flower.innerHTML = "🌸";
     flower.style.left = Math.random()*100 + "vw";
 
     document.body.appendChild(flower);
-
-    setTimeout(() => flower.remove(), 3000);
+    setTimeout(()=>flower.remove(),3000);
 }
 
 </script>
