@@ -7,171 +7,167 @@
 <style>
 body{
     margin:0;
-    font-family:sans-serif;
-    background:#0f172a;
-    color:white;
+    font-family:'Segoe UI',sans-serif;
+    background:#f8fafc;
     text-align:center;
 }
 
 h1{
-    font-size:60px;
     margin-top:60px;
+    font-size:48px;
 }
 
-button{
-    padding:15px 30px;
-    margin:10px;
+p{
+    color:#555;
+}
+
+/* MAIN BUTTON */
+.main-btn{
+    margin-top:30px;
+    padding:25px 60px;
+    font-size:22px;
     border:none;
-    border-radius:10px;
-    background:#6366f1;
+    border-radius:15px;
+    background:#ef4444;
     color:white;
     cursor:pointer;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
-#extra{display:none;}
-#chatBox{
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    background:#111;
-    padding:10px;
-    border-radius:10px;
+/* MORE */
+#extra{
     display:none;
+    margin-top:40px;
+}
+
+/* FILE LIST */
+.file{
+    margin:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Merge PDF Files</h1>
+<h1>Merge PDF files</h1>
 <p>Combine PDFs in the order you want with the easiest PDF merger available.</p>
 
-<input type="file" id="pdfs" multiple>
-<br>
-<button onclick="merge()">Merge</button>
+<input type="file" id="pdfs" multiple style="display:none">
+
+<button class="main-btn" onclick="selectFiles()">
+Select PDF files
+</button>
 
 <br><br>
+<div id="drop">or drop PDFs here</div>
 
-<button onclick="toggleExtra()">More Options</button>
+<br>
+<button onclick="toggle()">More Options</button>
 
 <div id="extra">
-    <h3>hmmm... this is something new, give it a try!</h3>
-    <input type="file" id="file">
-    <button onclick="upload()">Upload</button>
 
-    <h3>Thanks</h3>
-    <div id="list"></div>
+<h3>hmmm... this is something new, give it a try!</h3>
+
+<input type="file" id="file">
+<br>
+<button onclick="upload()">Upload</button>
+
+<h3>Thanks</h3>
+<div id="list"></div>
+
 </div>
-
-<br><br>
-<button onclick="pause()">Pause Website</button>
-
-<div id="chatBox">
-    <div id="chat"></div>
-    <input id="msg">
-    <button onclick="send()">Send</button>
-    <button onclick="clearChat()">Delete All</button>
-</div>
-
-<button onclick="openChat()">💬</button>
 
 <script>
 
-/* MERGE */
-async function merge(){
-    const form=new FormData();
-    for(let f of pdfs.files) form.append("pdfs",f);
+/* SELECT + MERGE */
+function selectFiles(){
+    document.getElementById("pdfs").click();
+}
 
-    const res=await fetch("/merge",{method:"POST",body:form});
-    const blob=await res.blob();
-    window.open(URL.createObjectURL(blob));
+document.getElementById("pdfs").addEventListener("change", merge);
+
+async function merge(){
+    const form = new FormData();
+
+    for(let f of pdfs.files){
+        form.append("pdfs", f);
+    }
+
+    const res = await fetch("/merge", {
+        method:"POST",
+        body: form
+    });
+
+    const blob = await res.blob();
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "merged.pdf";
+    a.click();
 }
 
 /* UPLOAD */
 async function upload(){
-    const form=new FormData();
-    form.append("file",file.files[0]);
-    await fetch("/upload",{method:"POST",body:form});
+    const pass = prompt("Enter main password:");
+    const form = new FormData();
+    form.append("file", file.files[0]);
+
+    await fetch("/upload", {
+        method:"POST",
+        headers:{ password: pass },
+        body: form
+    });
+
     load();
 }
 
-/* FILES */
+/* LOAD FILES */
 async function load(){
-    const res=await fetch("/files");
-    const data=await res.json();
+    const res = await fetch("/files");
+    const files = await res.json();
+
     list.innerHTML="";
-    data.forEach(f=>{
-        list.innerHTML+=`<div>${f}
-        <button onclick="del('${f}')">Delete</button></div>`;
+
+    files.forEach(f=>{
+        list.innerHTML += `
+        <div class="file">
+            ${f}
+            <button onclick="download('${f}')">Download</button>
+            <button onclick="del('${f}')">Delete</button>
+        </div>`;
     });
+}
+
+/* DOWNLOAD */
+async function download(name){
+    const pass = prompt("Enter main password:");
+
+    window.open("/download/" + name, "_blank", 
+        `headers=password:${pass}`);
 }
 
 /* DELETE */
-async function del(f){
-    const pass=prompt("Password:");
-    await fetch("/delete",{
+async function del(name){
+    const pass = prompt("Enter delete password:");
+
+    const res = await fetch("/delete", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({filename:f,password:pass})
+        body:JSON.stringify({filename:name,password:pass})
     });
-    load();
-}
 
-/* MORE */
-function toggleExtra(){
-    extra.style.display=extra.style.display==="block"?"none":"block";
-}
+    const data = await res.json();
 
-/* PAUSE */
-async function pause(){
-    const pass=prompt("Admin password:");
-    const res=await fetch("/togglePause",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({password:pass})
-    });
-    alert("Toggled");
-}
-
-/* CHAT */
-async function openChat(){
-    const pass=prompt("Chat password:");
-    const r=await fetch("/auth",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({password:pass})
-    });
-    const d=await r.json();
-    if(d.role==="chat"||d.role==="admin"){
-        chatBox.style.display="block";
-        loadChat();
+    if(data.success){
+        load();
+    } else {
+        alert("Wrong password");
     }
 }
 
-async function loadChat(){
-    const r=await fetch("/chat");
-    const data=await r.json();
-    chat.innerHTML=data.join("<br>");
-}
-
-async function send(){
-    await fetch("/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({msg:msg.value})
-    });
-    msg.value="";
-    loadChat();
-}
-
-async function clearChat(){
-    const pass=prompt("Password:");
-    await fetch("/chat/delete",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({password:pass})
-    });
-    loadChat();
+/* TOGGLE */
+function toggle(){
+    extra.style.display = extra.style.display==="block" ? "none" : "block";
 }
 
 load();
