@@ -1,26 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>PDF + F3D Tool</title>
+<meta charset="UTF-8">
+<title>PDF MERGER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    color: white;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 30px;
+}
+
+.title {
+    text-align: center;
+    font-size: 52px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+    color: #6366f1;
+}
+
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+}
+
+.section-title {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #cbd5f5;
+}
+
+input[type="password"],
+input[type="file"] {
+    margin: 10px 0;
+    padding: 12px;
+    width: 100%;
+    border-radius: 8px;
+    border: none;
+    background: #020617;
+    color: white;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #6366f1, #9333ea);
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.07);
+    opacity: 0.9;
+}
+
+.file {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    align-items: center;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Enter Password</h2>
-<input id="pass" type="password">
-<button onclick="login()">Enter</button>
+<div class="container">
+
+<div class="title">PDF MERGER</div>
+
+<div class="card">
+    <div class="section-title">Enter Password</div>
+    <input id="pass" type="password">
+    <button onclick="login()">Enter</button>
+</div>
 
 <div id="main" style="display:none">
 
-<h2>PDF Merge</h2>
-<input type="file" id="pdfs" multiple>
-<button onclick="merge()">Merge PDFs</button>
+<div class="card">
+    <div class="section-title">Merge PDFs</div>
+    <input type="file" id="pdfs" multiple>
+    <button onclick="merge()">Merge PDFs</button>
+</div>
 
-<h2>Upload F3D File</h2>
-<input type="file" id="file">
-<button onclick="upload()">Upload</button>
+<div class="card">
+    <div class="section-title">Upload F3D File</div>
+    <input type="file" id="file">
+    <button onclick="upload()">Upload</button>
+</div>
 
-<h3>Files</h3>
-<ul id="list"></ul>
+<div class="card">
+    <div class="section-title">Files</div>
+    <div id="list"></div>
+</div>
+
+</div>
 
 </div>
 
@@ -82,11 +174,13 @@ async function loadFiles() {
 
     files.forEach(f => {
         list.innerHTML += `
-        <li>
+        <div class="file">
             ${f}
-            <button onclick="download('${f}')">Download</button>
-            <button onclick="del('${f}')">Delete</button>
-        </li>`;
+            <div>
+                <button onclick="download('${f}')">Download</button>
+                <button onclick="del('${f}')">Delete</button>
+            </div>
+        </div>`;
     });
 }
 
