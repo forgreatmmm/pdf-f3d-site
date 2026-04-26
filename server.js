@@ -10,19 +10,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// ✅ IMPORTANT: Always create uploads folder at startup
+// 📁 Upload folder
 const uploadDir = path.join(__dirname, "uploads");
 
-try {
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        console.log("Uploads folder created");
-    }
-} catch (err) {
-    console.error("Error creating uploads folder:", err);
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Storage config
+// 📤 Storage config
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, uploadDir);
@@ -34,16 +29,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Passwords
+// 🔐 Passwords
 const USER_PASSWORD = "1234";
 const ADMIN_PASSWORD = "admin123";
 
-// Login
+// 🔐 Login
 app.post("/login", (req, res) => {
     res.json({ success: req.body.password === USER_PASSWORD });
 });
 
-// PDF Merge
+// 📄 Merge PDFs
 app.post("/merge", upload.array("pdfs"), async (req, res) => {
     try {
         const mergedPdf = await PDFDocument.create();
@@ -56,13 +51,10 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
         }
 
         const mergedBytes = await mergedPdf.save();
-        const outputPath = path.join(uploadDir, "merged.pdf");
 
-        fs.writeFileSync(outputPath, mergedBytes);
-
-        res.download(outputPath, () => {
-            fs.unlinkSync(outputPath);
-        });
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", "attachment; filename=merged.pdf");
+        res.send(Buffer.from(mergedBytes));
 
     } catch (err) {
         console.error("Merge error:", err);
@@ -70,28 +62,27 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
     }
 });
 
-// Upload
+// 📤 Upload (ALL FILE TYPES)
 app.post("/upload", upload.single("file"), (req, res) => {
     res.json({ message: "Uploaded successfully" });
 });
 
-// List files
+// 📂 List ALL files
 app.get("/files", (req, res) => {
     try {
         const files = fs.readdirSync(uploadDir);
-        const filtered = files.filter(f => f.endsWith(".f3d"));
-        res.json(filtered);
+        res.json(files); // ✅ no filtering
     } catch {
         res.json([]);
     }
 });
 
-// Download
+// ⬇ Download
 app.get("/download/:name", (req, res) => {
     res.download(path.join(uploadDir, req.params.name));
 });
 
-// Delete
+// ❌ Delete
 app.post("/delete", (req, res) => {
     const { filename, adminPassword } = req.body;
 
@@ -107,6 +98,6 @@ app.post("/delete", (req, res) => {
     res.json({ success: true });
 });
 
-// Start server
+// 🚀 Start
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
