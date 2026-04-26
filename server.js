@@ -10,13 +10,19 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
-// ✅ Ensure uploads folder exists (IMPORTANT for Render)
+// ✅ IMPORTANT: Always create uploads folder at startup
 const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+
+try {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        console.log("Uploads folder created");
+    }
+} catch (err) {
+    console.error("Error creating uploads folder:", err);
 }
 
-// ✅ Storage config
+// Storage config
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, uploadDir);
@@ -26,9 +32,9 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
-// 🔐 Passwords
+// Passwords
 const USER_PASSWORD = "1234";
 const ADMIN_PASSWORD = "admin123";
 
@@ -59,12 +65,12 @@ app.post("/merge", upload.array("pdfs"), async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Error merging PDFs");
+        console.error("Merge error:", err);
+        res.status(500).send("Merge failed");
     }
 });
 
-// Upload file
+// Upload
 app.post("/upload", upload.single("file"), (req, res) => {
     res.json({ message: "Uploaded successfully" });
 });
@@ -75,7 +81,7 @@ app.get("/files", (req, res) => {
         const files = fs.readdirSync(uploadDir);
         const filtered = files.filter(f => f.endsWith(".f3d"));
         res.json(filtered);
-    } catch (err) {
+    } catch {
         res.json([]);
     }
 });
