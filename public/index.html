@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF + F3D Tool</title>
+</head>
+<body>
+
+<h2>Enter Password</h2>
+<input id="pass" type="password">
+<button onclick="login()">Enter</button>
+
+<div id="main" style="display:none">
+
+<h2>PDF Merge</h2>
+<input type="file" id="pdfs" multiple>
+<button onclick="merge()">Merge PDFs</button>
+
+<h2>Upload F3D File</h2>
+<input type="file" id="file">
+<button onclick="upload()">Upload</button>
+
+<h3>Files</h3>
+<ul id="list"></ul>
+
+</div>
+
+<script>
+async function login() {
+    const password = document.getElementById("pass").value;
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({password})
+    });
+    const data = await res.json();
+
+    if(data.success){
+        document.getElementById("main").style.display = "block";
+        loadFiles();
+    } else {
+        alert("Wrong password");
+    }
+}
+
+async function merge() {
+    const files = document.getElementById("pdfs").files;
+    const form = new FormData();
+
+    for(let f of files){
+        form.append("pdfs", f);
+    }
+
+    const res = await fetch("/merge", {
+        method: "POST",
+        body: form
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url);
+}
+
+async function upload() {
+    const file = document.getElementById("file").files[0];
+    const form = new FormData();
+    form.append("file", file);
+
+    await fetch("/upload", {
+        method: "POST",
+        body: form
+    });
+
+    loadFiles();
+}
+
+async function loadFiles() {
+    const res = await fetch("/files");
+    const files = await res.json();
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    files.forEach(f => {
+        list.innerHTML += `
+        <li>
+            ${f}
+            <button onclick="download('${f}')">Download</button>
+            <button onclick="del('${f}')">Delete</button>
+        </li>`;
+    });
+}
+
+function download(name){
+    window.open("/download/" + name);
+}
+
+async function del(name){
+    const pass = prompt("Enter admin password:");
+
+    const res = await fetch("/delete", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({filename: name, adminPassword: pass})
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+        loadFiles();
+    } else {
+        alert("Wrong admin password");
+    }
+}
+</script>
+
+</body>
+</html>
