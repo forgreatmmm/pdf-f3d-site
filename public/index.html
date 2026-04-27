@@ -9,167 +9,92 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: radial-gradient(circle at top, #0f172a, #020617);
+    background: linear-gradient(135deg, #0f172a, #020617);
     color: white;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 30px;
 }
 
 .title {
     text-align: center;
-    font-size: 60px;
+    font-size: 48px;
     font-weight: bold;
-    margin-top: 40px;
-    letter-spacing: 3px;
-    background: linear-gradient(90deg,#6366f1,#9333ea,#6366f1);
-    background-size: 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shine 4s infinite linear;
+    margin-bottom: 10px;
+    color: #6366f1;
 }
 
-@keyframes shine {
-    0% { background-position: 0% }
-    100% { background-position: 200% }
+.desc {
+    text-align: center;
+    color: #cbd5f5;
+    margin-bottom: 30px;
 }
 
 .card {
-    max-width: 700px;
-    margin: 30px auto;
-    padding: 25px;
-    border-radius: 16px;
     background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(15px);
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
-}
-
-.section-title {
-    font-size: 22px;
-    margin-bottom: 10px;
-    color: #cbd5f5;
-}
-
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 8px;
-    border: none;
-    background: #020617;
-    color: white;
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(12px);
 }
 
 button {
-    padding: 12px 20px;
+    padding: 10px 20px;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(90deg,#6366f1,#9333ea);
+    background: linear-gradient(90deg, #6366f1, #9333ea);
     color: white;
     cursor: pointer;
-    transition: 0.3s;
-}
-
-button:hover {
-    transform: scale(1.08);
 }
 
 .file {
     display: flex;
     justify-content: space-between;
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 8px;
     background: rgba(255,255,255,0.05);
-}
-
-#extra {
-    max-height: 0;
-    overflow: hidden;
-    transition: 0.7s ease;
-}
-
-#extra.show {
-    max-height: 1000px;
-}
-
-.more-btn {
-    text-align: center;
-    margin: 30px;
-    cursor: pointer;
-    opacity: 0.7;
-}
-
-.flower {
-    position: fixed;
-    top: -50px;
-    font-size: 24px;
-    animation: fall 3s linear forwards;
-}
-
-@keyframes fall {
-    to {
-        transform: translateY(100vh) rotate(360deg);
-        opacity: 0;
-    }
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="title">PDF MERGER</div>
+<div class="container">
 
-<div class="card">
-    <div class="section-title">Authentication</div>
-    <input id="pass" type="password" placeholder="Enter password">
-    <button onclick="login()">Enter</button>
+<div class="title">PDF MERGER</div>
+<div class="desc">
+Combine PDFs in the order you want with the easiest PDF merger available.
 </div>
 
-<div id="main" style="display:none">
-
 <div class="card">
-    <div class="section-title">Merge PDF Files</div>
     <input type="file" id="pdfs" multiple>
+    <br><br>
     <button onclick="merge()">Merge PDFs</button>
 </div>
 
-<div class="more-btn" onclick="toggleExtra()">✨ More Options ✨</div>
-
-<div id="extra">
+<div style="text-align:center; margin:20px 0;">
+✨ More Options ✨
+</div>
 
 <div class="card">
-    <div class="section-title">Hmmm… this is something new, give it a try!</div>
+    <div>Hmmm... this is something new, give it a try!</div>
     <input type="file" id="file">
+    <br><br>
     <button onclick="upload()">Upload</button>
 </div>
 
 <div class="card">
-    <div class="section-title">Thanks.</div>
+    <div>Thanks.</div>
     <div id="list"></div>
 </div>
 
 </div>
 
-</div>
-
 <script>
-async function login() {
-    const password = document.getElementById("pass").value;
-
-    const res = await fetch("/login", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({password})
-    });
-
-    const data = await res.json();
-
-    if(data.success){
-        document.getElementById("main").style.display = "block";
-        loadFiles();
-    } else {
-        alert("Wrong password");
-    }
-}
-
 async function merge() {
     const files = document.getElementById("pdfs").files;
     const form = new FormData();
@@ -211,26 +136,26 @@ async function loadFiles() {
     files.forEach(f => {
         list.innerHTML += `
         <div class="file">
-            ${f.name}
+            ${f.original_filename}
             <div>
-                <button onclick="download('${f.id}')">Download</button>
-                <button onclick="del('${f.id}')">Delete</button>
+                <button onclick="download('${f.url}')">Download</button>
+                <button onclick="del('${f.public_id}')">Delete</button>
             </div>
         </div>`;
     });
 }
 
-function download(id){
-    window.open("/download/" + id);
+function download(url){
+    window.open(url);
 }
 
-async function del(id){
+async function del(public_id){
     const pass = prompt("Enter admin password:");
 
     const res = await fetch("/delete", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({id: id, adminPassword: pass})
+        body: JSON.stringify({public_id, adminPassword: pass})
     });
 
     const data = await res.json();
@@ -242,23 +167,8 @@ async function del(id){
     }
 }
 
-function toggleExtra(){
-    const extra = document.getElementById("extra");
-    extra.classList.toggle("show");
-
-    createFlower();
-    setTimeout(createFlower, 2000);
-}
-
-function createFlower(){
-    const flower = document.createElement("div");
-    flower.className = "flower";
-    flower.innerHTML = "🌸";
-    flower.style.left = Math.random()*100 + "vw";
-    document.body.appendChild(flower);
-
-    setTimeout(()=>flower.remove(),3000);
-}
+// auto load
+loadFiles();
 </script>
 
 </body>
