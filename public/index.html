@@ -1,74 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>PDF MERGER</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #0f172a, #020617);
-    color: white;
+    background:#020617;
+    color:white;
+    font-family:sans-serif;
+    text-align:center;
 }
-
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 30px;
-}
-
-.title {
-    text-align: center;
-    font-size: 48px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #6366f1;
-}
-
-.desc {
-    text-align: center;
-    color: #cbd5f5;
-    margin-bottom: 30px;
-}
-
 .card {
-    background: rgba(255,255,255,0.05);
-    padding: 20px;
-    border-radius: 14px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(12px);
+    background:#111827;
+    padding:20px;
+    margin:20px;
+    border-radius:12px;
 }
-
 button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 10px;
-    background: linear-gradient(90deg, #6366f1, #9333ea);
-    color: white;
-    cursor: pointer;
+    padding:10px 20px;
+    background:#6366f1;
+    border:none;
+    border-radius:8px;
+    color:white;
 }
-
 .file {
-    display: flex;
-    justify-content: space-between;
-    background: rgba(255,255,255,0.05);
-    padding: 10px;
-    margin-top: 10px;
-    border-radius: 8px;
+    display:flex;
+    justify-content:space-between;
+    margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<div class="title">PDF MERGER</div>
-<div class="desc">
-Combine PDFs in the order you want with the easiest PDF merger available.
-</div>
+<h1>PDF MERGER</h1>
+<p>Combine PDFs in the easiest way.</p>
 
 <div class="card">
     <input type="file" id="pdfs" multiple>
@@ -76,26 +43,44 @@ Combine PDFs in the order you want with the easiest PDF merger available.
     <button onclick="merge()">Merge PDFs</button>
 </div>
 
-<div style="text-align:center; margin:20px 0;">
-✨ More Options ✨
-</div>
+<h3 onclick="unlock()" style="cursor:pointer;">✨ More Options ✨</h3>
+
+<div id="secret" style="display:none;">
 
 <div class="card">
-    <div>Hmmm... this is something new, give it a try!</div>
+    <p>Hmmm... this is something new, give it a try!</p>
     <input type="file" id="file">
     <br><br>
     <button onclick="upload()">Upload</button>
 </div>
 
 <div class="card">
-    <div>Thanks.</div>
+    <p>Thanks.</p>
     <div id="list"></div>
 </div>
 
 </div>
 
 <script>
-async function merge() {
+
+let unlocked = false;
+
+function unlock(){
+    if(unlocked) return;
+
+    const pass = prompt("Enter password:");
+
+    if(pass === "1234"){
+        unlocked = true;
+        document.getElementById("secret").style.display = "block";
+        loadFiles();
+    } else {
+        alert("Wrong password");
+    }
+}
+
+// ===== MERGE =====
+async function merge(){
     const files = document.getElementById("pdfs").files;
     const form = new FormData();
 
@@ -103,72 +88,62 @@ async function merge() {
         form.append("pdfs", f);
     }
 
-    const res = await fetch("/merge", {
-        method: "POST",
-        body: form
-    });
-
+    const res = await fetch("/merge",{method:"POST",body:form});
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    window.open(url);
+    window.open(URL.createObjectURL(blob));
 }
 
-async function upload() {
+// ===== UPLOAD =====
+async function upload(){
     const file = document.getElementById("file").files[0];
     const form = new FormData();
     form.append("file", file);
 
-    await fetch("/upload", {
-        method: "POST",
-        body: form
-    });
+    document.querySelector("button").innerText = "Uploading...";
+
+    await fetch("/upload",{method:"POST",body:form});
+
+    document.querySelector("button").innerText = "Upload";
 
     loadFiles();
 }
 
-async function loadFiles() {
+// ===== FILES =====
+async function loadFiles(){
     const res = await fetch("/files");
     const files = await res.json();
 
     const list = document.getElementById("list");
     list.innerHTML = "";
 
-    files.forEach(f => {
+    files.forEach(f=>{
         list.innerHTML += `
         <div class="file">
             ${f.original_filename}
             <div>
-                <button onclick="download('${f.url}')">Download</button>
+                <button onclick="window.open('${f.url}')">Download</button>
                 <button onclick="del('${f.public_id}')">Delete</button>
             </div>
         </div>`;
     });
 }
 
-function download(url){
-    window.open(url);
-}
+// ===== DELETE =====
+async function del(id){
+    const pass = prompt("Admin password:");
 
-async function del(public_id){
-    const pass = prompt("Enter admin password:");
-
-    const res = await fetch("/delete", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({public_id, adminPassword: pass})
+    const res = await fetch("/delete",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({public_id:id,adminPassword:pass})
     });
 
     const data = await res.json();
 
-    if(data.success){
-        loadFiles();
-    } else {
-        alert("Wrong admin password");
-    }
+    if(data.success) loadFiles();
+    else alert("Wrong admin password");
 }
 
-// auto load
-loadFiles();
 </script>
 
 </body>
