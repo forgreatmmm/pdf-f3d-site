@@ -11,10 +11,8 @@ body {
     font-family: 'Segoe UI', sans-serif;
     background: radial-gradient(circle at top, #0f172a, #020617);
     color: white;
-    overflow-x: hidden;
 }
 
-/* TITLE */
 .title {
     text-align: center;
     font-size: 60px;
@@ -33,7 +31,6 @@ body {
     100% { background-position: 200% }
 }
 
-/* CARD */
 .card {
     max-width: 700px;
     margin: 30px auto;
@@ -50,7 +47,6 @@ body {
     color: #cbd5f5;
 }
 
-/* INPUT */
 input {
     width: 100%;
     padding: 12px;
@@ -61,7 +57,6 @@ input {
     color: white;
 }
 
-/* BUTTON */
 button {
     padding: 12px 20px;
     border: none;
@@ -76,7 +71,6 @@ button:hover {
     transform: scale(1.08);
 }
 
-/* FILE LIST */
 .file {
     display: flex;
     justify-content: space-between;
@@ -86,7 +80,6 @@ button:hover {
     background: rgba(255,255,255,0.05);
 }
 
-/* HIDDEN SECTION */
 #extra {
     max-height: 0;
     overflow: hidden;
@@ -97,7 +90,6 @@ button:hover {
     max-height: 1000px;
 }
 
-/* MORE BUTTON */
 .more-btn {
     text-align: center;
     margin: 30px;
@@ -105,7 +97,6 @@ button:hover {
     opacity: 0.7;
 }
 
-/* FLOWERS */
 .flower {
     position: fixed;
     top: -50px;
@@ -127,15 +118,15 @@ button:hover {
 <div class="title">PDF MERGER</div>
 
 <div class="card">
-    <div class="section-title">AUTHENTICATION</div>
-    <input id="pass" type="password">
+    <div class="section-title">Authentication</div>
+    <input id="pass" type="password" placeholder="Enter password">
     <button onclick="login()">Enter</button>
 </div>
 
 <div id="main" style="display:none">
 
 <div class="card">
-    <div class="section-title">Merge PDFs</div>
+    <div class="section-title">Merge PDF Files</div>
     <input type="file" id="pdfs" multiple>
     <button onclick="merge()">Merge PDFs</button>
 </div>
@@ -162,11 +153,13 @@ button:hover {
 <script>
 async function login() {
     const password = document.getElementById("pass").value;
+
     const res = await fetch("/login", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({password})
     });
+
     const data = await res.json();
 
     if(data.success){
@@ -218,26 +211,26 @@ async function loadFiles() {
     files.forEach(f => {
         list.innerHTML += `
         <div class="file">
-            ${f}
+            ${f.name}
             <div>
-                <button onclick="download('${f}')">Download</button>
-                <button onclick="del('${f}')">Delete</button>
+                <button onclick="download('${f.id}')">Download</button>
+                <button onclick="del('${f.id}')">Delete</button>
             </div>
         </div>`;
     });
 }
 
-function download(name){
-    window.open("/download/" + name);
+function download(id){
+    window.open("/download/" + id);
 }
 
-async function del(name){
+async function del(id){
     const pass = prompt("Enter admin password:");
 
     const res = await fetch("/delete", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({filename: name, adminPassword: pass})
+        body: JSON.stringify({id: id, adminPassword: pass})
     });
 
     const data = await res.json();
@@ -249,7 +242,6 @@ async function del(name){
     }
 }
 
-/* TOGGLE + FLOWER EFFECT */
 function toggleExtra(){
     const extra = document.getElementById("extra");
     extra.classList.toggle("show");
