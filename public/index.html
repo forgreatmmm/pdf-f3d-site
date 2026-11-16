@@ -1,102 +1,45 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF MERGER</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
-
 body {
-    background: #020617;
-    color: white;
-    font-family: sans-serif;
-    text-align: center;
-    margin: 0;
-    padding: 20px 10px;
+    background:#020617;
+    color:white;
+    font-family:sans-serif;
+    text-align:center;
 }
-
-h1 {
-    margin-top: 5px;
-}
-
 .card {
-    background: #111827;
-    padding: 20px;
-    margin: 20px auto;
-    border-radius: 12px;
-    max-width: 1200px;
+    background:#111827;
+    padding:20px;
+    margin:20px;
+    border-radius:12px;
 }
-
 button {
-    padding: 10px 20px;
-    background: #6366f1;
-    border: none;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-    margin: 3px;
+    padding:10px 20px;
+    background:#6366f1;
+    border:none;
+    border-radius:8px;
+    color:white;
+    cursor:pointer;
 }
-
 button:hover {
-    background: #4f46e5;
+    background:#4f46e5;
 }
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-input[type="file"] {
-    max-width: 100%;
-}
-
 .file {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    padding: 12px;
-    background: #1e293b;
-    border-radius: 8px;
-    text-align: left;
-}
-
-.file-name {
-    overflow-wrap: anywhere;
-    flex: 1;
-}
-
-.file-actions {
-    display: flex;
-    gap: 5px;
-}
-
-#status {
-    margin: 12px;
-    min-height: 20px;
-    overflow-wrap: anywhere;
-}
-
-#list {
-    margin-top: 15px;
-}
-
-@media(max-width: 600px) {
-    .file {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .file-actions {
-        justify-content: center;
-    }
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+    margin-top:10px;
+    padding:15px;
+    background:#1e293b;
+    border-radius:8px;
 }
 </style>
 </head>
@@ -106,21 +49,11 @@ input[type="file"] {
 <h1>PDF MERGER</h1>
 <p>Combine PDFs in the easiest way.</p>
 
-<!-- PDF MERGER -->
-
 <div class="card">
-
-    <input type="file" id="pdfs" accept=".pdf,application/pdf" multiple>
-
+    <input type="file" id="pdfs" multiple accept=".pdf,application/pdf">
     <br><br>
-
-    <button id="mergeBtn" onclick="merge()">
-        Merge PDFs
-    </button>
-
+    <button onclick="merge()">Merge PDFs</button>
 </div>
-
-<!-- MORE OPTIONS -->
 
 <h3 onclick="unlock()" style="cursor:pointer;">
     ✨ More Options ✨
@@ -128,34 +61,19 @@ input[type="file"] {
 
 <div id="secret" style="display:none;">
 
-    <!-- UNIVERSAL UPLOAD -->
-
     <div class="card">
-
-        <p>Upload your files here!</p>
+        <p>Hmmm... this is something new, give it a try!</p>
 
         <input type="file" id="file">
 
         <br><br>
 
-        <button id="uploadBtn" onclick="upload()">
-            Upload
-        </button>
-
-        <p id="status"></p>
-
+        <button id="uploadBtn" onclick="upload()">Upload</button>
     </div>
 
-    <!-- FILE LIST -->
-
     <div class="card">
-
-        <p>Uploaded Files</p>
-
-        <div id="list">
-            Loading files...
-        </div>
-
+        <p>Thanks.</p>
+        <div id="list"></div>
     </div>
 
 </div>
@@ -164,206 +82,147 @@ input[type="file"] {
 
 let unlocked = false;
 
-// =============== UNLOCK ===============
-
+// ===== UNLOCK =====
 function unlock() {
 
-    if (unlocked) return;
+    if(unlocked) return;
 
     const pass = prompt("Enter password:");
 
-    if (pass === null) return;
+    if(pass === null) return;
 
-    if (pass === "1234") {
-
+    if(pass === "1234") {
         unlocked = true;
-
         document.getElementById("secret").style.display = "block";
-
         loadFiles();
-
     } else {
-
         alert("Wrong password");
-
     }
 }
 
-// =============== PDF MERGE ===============
-
+// ===== MERGE PDF =====
 async function merge() {
 
-    const input = document.getElementById("pdfs");
-    const files = input.files;
-    const btn = document.getElementById("mergeBtn");
+    const files = document.getElementById("pdfs").files;
 
-    if (files.length < 2) {
-        alert("Please select at least two PDF files.");
+    if(files.length < 2) {
+        alert("Please select at least 2 PDF files.");
         return;
     }
 
     const form = new FormData();
 
-    for (const file of files) {
-        form.append("pdfs", file);
+    for(let f of files) {
+        form.append("pdfs", f);
     }
-
-    btn.disabled = true;
-    btn.innerText = "Merging...";
 
     try {
 
         const res = await fetch("/merge", {
-            method: "POST",
-            body: form
+            method:"POST",
+            body:form
         });
 
-        if (!res.ok) {
-            const message = await res.text();
-            throw new Error(message || "PDF merge failed.");
+        if(!res.ok) {
+            throw new Error("Merge failed");
         }
 
         const blob = await res.blob();
-
         const url = URL.createObjectURL(blob);
 
-        const link = document.createElement("a");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "merged.pdf";
+        a.click();
 
-        link.href = url;
-        link.download = "merged.pdf";
+        URL.revokeObjectURL(url);
 
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-        input.value = "";
-
-    } catch (error) {
-
+    } catch(error) {
         alert(error.message);
-
-    } finally {
-
-        btn.disabled = false;
-        btn.innerText = "Merge PDFs";
-
     }
 }
 
-// =============== UNIVERSAL UPLOAD ===============
-
+// ===== UPLOAD =====
 async function upload() {
 
-    const input = document.getElementById("file");
-    const file = input.files[0];
+    const file = document.getElementById("file").files[0];
 
-    const btn = document.getElementById("uploadBtn");
-    const status = document.getElementById("status");
-
-    if (!file) {
+    if(!file) {
         alert("Please select a file first.");
         return;
     }
 
     const form = new FormData();
-
     form.append("file", file);
 
-    btn.disabled = true;
+    const btn = document.getElementById("uploadBtn");
     btn.innerText = "Uploading...";
-
-    status.innerText = "Uploading " + file.name + "...";
+    btn.disabled = true;
 
     try {
 
         const res = await fetch("/upload", {
-            method: "POST",
-            body: form
+            method:"POST",
+            body:form
         });
 
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
-            throw new Error(data.message || "Upload failed.");
+        if(!res.ok || !data.success) {
+            throw new Error(data.message || "Upload failed");
         }
 
-        status.innerText = "Upload successful!";
+        alert("File uploaded successfully!");
 
-        input.value = "";
+        document.getElementById("file").value = "";
 
         await loadFiles();
 
-    } catch (error) {
-
-        status.innerText = "Error: " + error.message;
-
-    } finally {
-
-        btn.disabled = false;
-        btn.innerText = "Upload";
-
+    } catch(error) {
+        alert(error.message);
     }
+
+    btn.innerText = "Upload";
+    btn.disabled = false;
 }
 
-// =============== LOAD FILES ===============
-
+// ===== LOAD FILES =====
 async function loadFiles() {
 
     const list = document.getElementById("list");
-
-    list.innerText = "Loading files...";
 
     try {
 
         const res = await fetch("/files");
 
-        const files = await res.json();
+        if(!res.ok) throw new Error("Unable to load files");
 
-        if (!res.ok) {
-            throw new Error(files.message || "Unable to load files.");
-        }
+        const files = await res.json();
 
         list.innerHTML = "";
 
-        if (!Array.isArray(files) || files.length === 0) {
-
-            list.innerText = "No files uploaded yet.";
-
-            return;
-        }
-
-        files.forEach(file => {
+        files.forEach(f => {
 
             const row = document.createElement("div");
             row.className = "file";
 
             const name = document.createElement("span");
-            name.className = "file-name";
-            name.textContent = file.original_filename || "Unnamed file";
+            name.textContent = f.original_filename;
 
             const actions = document.createElement("div");
-            actions.className = "file-actions";
 
             const downloadBtn = document.createElement("button");
             downloadBtn.textContent = "Download";
 
             downloadBtn.onclick = () => {
-
-                const url = "/download?public_id=" +
-                    encodeURIComponent(file.public_id);
-
-                window.open(url, "_blank", "noopener");
-
+                window.location.href =
+                    "/download?public_id=" + encodeURIComponent(f.public_id);
             };
 
             const deleteBtn = document.createElement("button");
             deleteBtn.textContent = "Delete";
 
-            deleteBtn.onclick = () => {
-                del(file.public_id);
-            };
+            deleteBtn.onclick = () => del(f.public_id);
 
             actions.appendChild(downloadBtn);
             actions.appendChild(deleteBtn);
@@ -375,55 +234,60 @@ async function loadFiles() {
 
         });
 
-    } catch (error) {
-
-        list.innerText = "Error loading files: " + error.message;
-
+    } catch(error) {
+        list.textContent = error.message;
     }
 }
 
-// =============== DELETE FILE ===============
-
+// ===== DELETE DIRECTLY WITH PASSWORD =====
 async function del(id) {
 
-    if (!confirm("Are you sure you want to delete this file?")) {
-        return;
-    }
+    // Directly ask for admin password.
+    // No "Are you sure?" confirmation popup.
 
     const pass = prompt("Admin password:");
 
-    if (pass === null) return;
+    // Cancel clicked
+    if(pass === null) {
+        return;
+    }
+
+    // Empty password
+    if(pass.trim() === "") {
+        alert("Password cannot be empty.");
+        return;
+    }
 
     try {
 
         const res = await fetch("/delete", {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
             },
-
-            body: JSON.stringify({
-                public_id: id,
-                adminPassword: pass
+            body:JSON.stringify({
+                public_id:id,
+                adminPassword:pass
             })
-
         });
 
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
-            throw new Error(data.message || "Delete failed.");
+        if(data.success) {
+
+            alert("File deleted successfully!");
+
+            loadFiles();
+
+        } else {
+
+            alert("Wrong admin password or deletion failed.");
+
         }
 
-        alert("File deleted successfully!");
+    } catch(error) {
 
-        await loadFiles();
-
-    } catch (error) {
-
-        alert(error.message);
+        alert("Server error. Please try again.");
 
     }
 }
