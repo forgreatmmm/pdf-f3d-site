@@ -1,88 +1,520 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>PDF MERGER</title>
 
 <style>
+:root {
+    --bg: #050611;
+    --card: rgba(17, 24, 39, 0.78);
+    --border: rgba(255,255,255,0.09);
+    --text: #ffffff;
+    --muted: #a6aec2;
+    --purple: #7565ff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
-    background:#020617;
-    color:white;
-    font-family:sans-serif;
-    text-align:center;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+    text-align: center;
+    position: relative;
 }
+
+/* ===== RADIANT RAINBOW BACKGROUND ===== */
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: -30%;
+    z-index: -2;
+    pointer-events: none;
+
+    background:
+        radial-gradient(ellipse at 18% 35%,
+            rgba(255, 91, 47, 0.19), transparent 32%),
+        radial-gradient(ellipse at 40% 60%,
+            rgba(255, 51, 153, 0.19), transparent 34%),
+        radial-gradient(ellipse at 60% 55%,
+            rgba(114, 71, 255, 0.22), transparent 35%),
+        radial-gradient(ellipse at 78% 45%,
+            rgba(38, 135, 255, 0.20), transparent 33%),
+        radial-gradient(ellipse at 92% 65%,
+            rgba(36, 220, 150, 0.16), transparent 30%);
+
+    filter: blur(45px);
+    animation: rainbowMove 14s ease-in-out infinite alternate;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(5,6,17,0.15) 0%,
+            rgba(5,6,17,0.25) 40%,
+            #050611 100%
+        );
+}
+
+@keyframes rainbowMove {
+    0% {
+        transform: translate(-3%, -2%) scale(1);
+    }
+    50% {
+        transform: translate(3%, 2%) scale(1.08);
+    }
+    100% {
+        transform: translate(-1%, 3%) scale(1.03);
+    }
+}
+
+/* ===== HERO SECTION ===== */
+
+.hero {
+    padding: 90px 20px 45px;
+    position: relative;
+}
+
+.hero h1 {
+    font-size: clamp(48px, 7vw, 88px);
+    font-weight: 850;
+    letter-spacing: -4px;
+    line-height: 1.05;
+
+    background: linear-gradient(
+        100deg,
+        #ffffff 10%,
+        #ffffff 40%,
+        #c9c2ff 70%,
+        #ffffff 100%
+    );
+
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+
+    text-shadow: 0 0 45px rgba(126, 100, 255, 0.13);
+}
+
+.hero p {
+    margin-top: 24px;
+    font-size: clamp(18px, 2vw, 24px);
+    color: #d1d5e5;
+    min-height: 35px;
+    letter-spacing: 0.2px;
+}
+
+/* Typewriter cursor */
+
+.cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: #a99aff;
+    margin-left: 4px;
+    vertical-align: -3px;
+    animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* ===== MAIN CONTAINER ===== */
+
+.container {
+    width: min(1100px, 90%);
+    margin: 0 auto;
+}
+
+/* ===== CARDS ===== */
+
 .card {
-    background:#111827;
-    padding:20px;
-    margin:20px;
-    border-radius:12px;
+    position: relative;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    padding: 48px 25px;
+    margin: 25px 0;
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.20),
+        inset 0 1px 0 rgba(255,255,255,0.035);
+
+    transition:
+        border-color 0.3s ease,
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
+
+.card:hover {
+    border-color: rgba(143, 124, 255, 0.35);
+    box-shadow:
+        0 20px 70px rgba(69, 50, 170, 0.12),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+input[type="file"] {
+    max-width: 100%;
+    color: #dce0ef;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+    background: #252c40;
+    color: white;
+    border: 1px solid #414b65;
+    border-radius: 8px;
+    padding: 11px 17px;
+    margin-right: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: #343e5b;
+}
+
+/* ===== BUTTONS ===== */
+
 button {
-    padding:10px 20px;
-    background:#6366f1;
-    border:none;
-    border-radius:8px;
-    color:white;
-    cursor:pointer;
+    position: relative;
+    overflow: hidden;
+
+    padding: 14px 27px;
+    margin-top: 23px;
+
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+
+    background: linear-gradient(110deg, #6655ed, #8871ff);
+
+    box-shadow: 0 5px 22px rgba(112, 91, 255, 0.22);
+
+    cursor: pointer;
+    transition: all 0.25s ease;
 }
+
 button:hover {
-    background:#4f46e5;
+    transform: translateY(-3px);
+    background: linear-gradient(110deg, #7969ff, #a08dff);
+    box-shadow: 0 9px 30px rgba(112, 91, 255, 0.38);
 }
+
+button:active {
+    transform: scale(0.97);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ===== MORE OPTIONS ===== */
+
+.more-title {
+    display: inline-block;
+    font-size: 22px;
+    font-weight: 750;
+    margin: 12px 0 5px;
+    cursor: pointer;
+
+    background: linear-gradient(
+        90deg, #ffffff, #b4a7ff, #ffffff
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+
+    transition: 0.3s;
+}
+
+.more-title:hover {
+    text-shadow: 0 0 25px rgba(145, 119, 255, 0.5);
+    transform: scale(1.04);
+}
+
+#secret {
+    display: none;
+    animation: reveal 0.45s ease;
+}
+
+@keyframes reveal {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card p {
+    font-size: 18px;
+    color: #e0e4f2;
+    margin-bottom: 25px;
+}
+
+/* ===== FILE LIST ===== */
+
+#list {
+    margin-top: 20px;
+}
+
 .file {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:15px;
-    flex-wrap:wrap;
-    margin-top:10px;
-    padding:15px;
-    background:#1e293b;
-    border-radius:8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+
+    padding: 17px 20px;
+    margin-top: 13px;
+
+    background: rgba(35, 45, 67, 0.85);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+
+    transition: 0.25s;
+}
+
+.file:hover {
+    background: rgba(46, 57, 84, 0.95);
+    border-color: rgba(145, 124, 255, 0.28);
+}
+
+.file span {
+    font-size: 16px;
+    color: #f1f3fa;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.file-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.file button {
+    margin: 0;
+    padding: 11px 19px;
+    font-size: 14px;
+}
+
+.file button:last-child {
+    background: linear-gradient(110deg, #5547b8, #7565ed);
+}
+
+.empty-message {
+    color: var(--muted);
+    padding: 20px;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media(max-width: 650px) {
+
+    .hero {
+        padding: 65px 15px 30px;
+    }
+
+    .hero h1 {
+        letter-spacing: -2px;
+    }
+
+    .container {
+        width: 92%;
+    }
+
+    .card {
+        padding: 35px 16px;
+        border-radius: 15px;
+    }
+
+    .file {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .file-actions {
+        width: 100%;
+    }
+
+    .file-actions button {
+        flex: 1;
+    }
+
+    input[type="file"] {
+        font-size: 12px;
+    }
+}
+
+/* Respect reduced-motion preferences */
+
+@media(prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 </head>
 
 <body>
 
-<h1>PDF MERGER</h1>
-<p>Combine PDFs in the easiest way.</p>
+<!-- ===== HERO ===== -->
 
-<div class="card">
-    <input type="file" id="pdfs" multiple accept=".pdf,application/pdf">
-    <br><br>
-    <button onclick="merge()">Merge PDFs</button>
-</div>
+<header class="hero">
 
-<h3 onclick="unlock()" style="cursor:pointer;">
-    ✨ More Options ✨
-</h3>
+    <h1>PDF MERGER</h1>
 
-<div id="secret" style="display:none;">
+    <p>
+        <span id="typewriter"></span><span class="cursor"></span>
+    </p>
+
+</header>
+
+<main class="container">
+
+    <!-- ===== PDF MERGE ===== -->
 
     <div class="card">
-        <p>Hmmm... this is something new, give it a try!</p>
 
-        <input type="file" id="file">
+        <input type="file" id="pdfs" multiple accept=".pdf,application/pdf">
 
         <br><br>
 
-        <button id="uploadBtn" onclick="upload()">Upload</button>
+        <button onclick="merge()">Merge PDFs</button>
+
     </div>
 
-    <div class="card">
-        <p>Thanks.</p>
-        <div id="list"></div>
+    <!-- ===== MORE OPTIONS ===== -->
+
+    <h3 class="more-title" onclick="unlock()">
+        ✨ More Options ✨
+    </h3>
+
+    <div id="secret">
+
+        <!-- UPLOAD -->
+
+        <div class="card">
+
+            <p>Hmmm... this is something new, give it a try!</p>
+
+            <input type="file" id="file">
+
+            <br><br>
+
+            <button id="uploadBtn" onclick="upload()">
+                Upload
+            </button>
+
+        </div>
+
+        <!-- UPLOADED FILES -->
+
+        <div class="card">
+
+            <p>Thanks.</p>
+
+            <div id="list">
+                <div class="empty-message">Loading...</div>
+            </div>
+
+        </div>
+
     </div>
 
-</div>
+</main>
 
 <script>
 
+/* ===== TYPEWRITER EFFECT ===== */
+
+const tagline = "Combine PDFs in the easiest way.";
+const typewriter = document.getElementById("typewriter");
+
+let charIndex = 0;
+let deleting = false;
+
+function typeEffect() {
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        typewriter.textContent = tagline;
+        return;
+    }
+
+    if (!deleting) {
+
+        typewriter.textContent = tagline.substring(0, charIndex + 1);
+        charIndex++;
+
+        if (charIndex === tagline.length) {
+            deleting = true;
+            setTimeout(typeEffect, 2200);
+            return;
+        }
+
+        setTimeout(typeEffect, 65);
+
+    } else {
+
+        typewriter.textContent = tagline.substring(0, charIndex - 1);
+        charIndex--;
+
+        if (charIndex === 0) {
+            deleting = false;
+            setTimeout(typeEffect, 500);
+            return;
+        }
+
+        setTimeout(typeEffect, 35);
+    }
+}
+
+typeEffect();
+
+/* ===== UNLOCK ===== */
+
 let unlocked = false;
 
-// ===== UNLOCK =====
 function unlock() {
 
     if(unlocked) return;
@@ -92,15 +524,22 @@ function unlock() {
     if(pass === null) return;
 
     if(pass === "1234") {
+
         unlocked = true;
+
         document.getElementById("secret").style.display = "block";
+
         loadFiles();
+
     } else {
+
         alert("Wrong password");
+
     }
 }
 
-// ===== MERGE PDF =====
+/* ===== MERGE PDF ===== */
+
 async function merge() {
 
     const files = document.getElementById("pdfs").files;
@@ -135,14 +574,17 @@ async function merge() {
         a.download = "merged.pdf";
         a.click();
 
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     } catch(error) {
+
         alert(error.message);
+
     }
 }
 
-// ===== UPLOAD =====
+/* ===== UPLOAD ===== */
+
 async function upload() {
 
     const file = document.getElementById("file").files[0];
@@ -156,6 +598,7 @@ async function upload() {
     form.append("file", file);
 
     const btn = document.getElementById("uploadBtn");
+
     btn.innerText = "Uploading...";
     btn.disabled = true;
 
@@ -179,14 +622,17 @@ async function upload() {
         await loadFiles();
 
     } catch(error) {
+
         alert(error.message);
+
     }
 
     btn.innerText = "Upload";
     btn.disabled = false;
 }
 
-// ===== LOAD FILES =====
+/* ===== LOAD FILES ===== */
+
 async function loadFiles() {
 
     const list = document.getElementById("list");
@@ -195,11 +641,20 @@ async function loadFiles() {
 
         const res = await fetch("/files");
 
-        if(!res.ok) throw new Error("Unable to load files");
+        if(!res.ok) {
+            throw new Error("Unable to load files");
+        }
 
         const files = await res.json();
 
         list.innerHTML = "";
+
+        if(files.length === 0) {
+
+            list.innerHTML = '<div class="empty-message">No files uploaded yet.</div>';
+            return;
+
+        }
 
         files.forEach(f => {
 
@@ -210,13 +665,17 @@ async function loadFiles() {
             name.textContent = f.original_filename;
 
             const actions = document.createElement("div");
+            actions.className = "file-actions";
 
             const downloadBtn = document.createElement("button");
             downloadBtn.textContent = "Download";
 
             downloadBtn.onclick = () => {
+
                 window.location.href =
-                    "/download?public_id=" + encodeURIComponent(f.public_id);
+                    "/download?public_id=" +
+                    encodeURIComponent(f.public_id);
+
             };
 
             const deleteBtn = document.createElement("button");
@@ -235,24 +694,20 @@ async function loadFiles() {
         });
 
     } catch(error) {
+
         list.textContent = error.message;
+
     }
 }
 
-// ===== DELETE DIRECTLY WITH PASSWORD =====
-async function del(id) {
+/* ===== DELETE ===== */
 
-    // Directly ask for admin password.
-    // No "Are you sure?" confirmation popup.
+async function del(id) {
 
     const pass = prompt("Admin password:");
 
-    // Cancel clicked
-    if(pass === null) {
-        return;
-    }
+    if(pass === null) return;
 
-    // Empty password
     if(pass.trim() === "") {
         alert("Password cannot be empty.");
         return;
@@ -261,14 +716,18 @@ async function del(id) {
     try {
 
         const res = await fetch("/delete", {
+
             method:"POST",
+
             headers:{
                 "Content-Type":"application/json"
             },
+
             body:JSON.stringify({
                 public_id:id,
                 adminPassword:pass
             })
+
         });
 
         const data = await res.json();
