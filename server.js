@@ -21,7 +21,6 @@ cloudinary.config({
     api_secret: process.env.API_SECRET
 });
 
-// Check credentials are configured
 if (!process.env.CLOUD_NAME ||
     !process.env.API_KEY ||
     !process.env.API_SECRET) {
@@ -30,42 +29,99 @@ if (!process.env.CLOUD_NAME ||
 
 // =============== PASSWORDS ===============
 
-const USER_PASSWORD = "1234";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
-// =============== FILE UPLOAD CONFIG ===============
+// =============== UPLOAD CONFIG ===============
 
 const storage = multer.memoryStorage();
 
 const upload = multer({
     storage,
     limits: {
-        fileSize: 100 * 1024 * 1024 // 100 MB per file
+        fileSize: 100 * 1024 * 1024
     }
 });
+
+// =============== ORIGINAL FILENAME ===============
+
+function getOriginalFilename(file) {
+
+    // Prefer Cloudinary's stored original filename
+    if (file.original_filename) {
+        return file.original_filename;
+    }
+
+    if (file.context?.custom?.original_filename) {
+        return file.context.custom.original_filename;
+    }
+
+    const publicId = file.public_id;
+
+    // New filename format: timestamp-UUID-base64name.extension
+    const extension = path.extname(publicId);
+    const idWithoutExtension = extension
+        ? publicId.slice(0, -extension.length)
+        : publicId;
+
+    const newMatch = idWithoutExtension.match(
+        /^\d+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(.+)$/i
+    );
+
+    if (newMatch) {
+        try {
+            const decoded = Buffer.from(
+                newMatch[1],
+                "base64url"
+            ).toString("utf8");
+
+            if (decoded) {
+                return decoded + extension;
+            }
+        } catch (error) {
+            console.error("Filename decode error:", error);
+        }
+    }
+
+    // Old filename format: timestamp-UUID-originalname
+    const oldMatch = publicId.match(
+        /^\d+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(.+)$/i
+    );
+
+    if (oldMatch) {
+        return oldMatch[1];
+    }
+
+    return publicId;
+}
 
 // =============== HEALTH CHECK ===============
 
 app.get("/api/health", (req, res) => {
     res.json({
         success: true,
-        message: "PDF Merger server running"
+        message: "Server running successfully"
     });
 });
 
-// =============== PDF MERGE ===============
+// =============== PDF MERGER ===============
 
 app.post("/merge", upload.array("pdfs", 20), async (req, res) => {
     try {
+
         if (!req.files || req.files.length < 2) {
-            return res.status(400).send("Select at least two PDF files.");
+            return res.status(400).send(
+                "Please select at least two PDF files."
+            );
         }
 
         const mergedPdf = await PDFDocument.create();
 
         for (const file of req.files) {
+
             if (path.extname(file.originalname).toLowerCase() !== ".pdf") {
-                return res.status(400).send("Only PDF files can be merged.");
+                return res.status(400).send(
+                    "Only PDF files can be merged."
+                );
             }
 
             const pdf = await PDFDocument.load(file.buffer);
@@ -81,6 +137,7 @@ app.post("/merge", upload.array("pdfs", 20), async (req, res) => {
         const mergedBytes = await mergedPdf.save();
 
         res.setHeader("Content-Type", "application/pdf");
+
         res.setHeader(
             "Content-Disposition",
             'attachment; filename="merged.pdf"'
@@ -89,15 +146,21 @@ app.post("/merge", upload.array("pdfs", 20), async (req, res) => {
         res.send(Buffer.from(mergedBytes));
 
     } catch (error) {
+
         console.error("Merge error:", error);
-        res.status(500).send("PDF merge failed. Check your PDF files.");
+
+        res.status(500).send(
+            "PDF merge failed. Check your PDF files."
+        );
     }
 });
 
-// =============== UNIVERSAL FILE UPLOAD ===============
+// =============== UNIVERSAL UPLOAD ===============
 
 app.post("/upload", upload.single("file"), async (req, res) => {
+
     try {
+
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -107,15 +170,37 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
         const originalName = path.basename(req.file.originalname);
 
-        // Create a unique Cloudinary public ID.
-        // Preserve the extension for raw files.
-        const safeName = originalName.replace(/[^\w.\-]/g, "_");
-        const publicId = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const extension = path.extname(originalName);
+
+        const nameWithoutExtension = extension
+            ? originalName.slice(0, -extension.length)
+            : originalName;
+
+        // Encode filename to preserve spaces and special characters
+        const encodedName = Buffer.from(
+            nameWithoutExtension,
+            "utf8"
+        ).toString("base64url");
+
+        const publicId =
+            Date.now() + "-" +
+            crypto.randomUUID() + "-" +
+            encodedName + extension;
+
+        // Raw Cloudinary public IDs have a 255-character limit
+        if (publicId.length > 250) {
+            return res.status(400).json({
+                success: false,
+                message: "Filename is too long. Please rename the file."
+            });
+        }
 
         const result = await new Promise((resolve, reject) => {
+
             const stream = cloudinary.uploader.upload_stream(
                 {
                     resource_type: "raw",
+                    type: "upload",
                     public_id: publicId,
                     filename_override: originalName,
                     context: {
@@ -123,12 +208,16 @@ app.post("/upload", upload.single("file"), async (req, res) => {
                     }
                 },
                 (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(result);
+                    }
                 }
             );
 
             stream.end(req.file.buffer);
+
         });
 
         res.json({
@@ -136,17 +225,17 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             message: "File uploaded successfully!",
             file: {
                 original_filename: originalName,
-                public_id: result.public_id,
-                url: result.secure_url
+                public_id: result.public_id
             }
         });
 
     } catch (error) {
+
         console.error("Upload error:", error);
 
         res.status(500).json({
             success: false,
-            message: error.message || "File upload failed."
+            message: error.message || "Upload failed."
         });
     }
 });
@@ -154,35 +243,37 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 // =============== FILE LIST ===============
 
 app.get("/files", async (req, res) => {
+
     try {
+
         const result = await cloudinary.search
-            .expression("resource_type:raw AND resource_type:raw")
+            .expression("resource_type:raw")
             .sort_by("created_at", "desc")
             .max_results(100)
             .with_field("context")
             .execute();
 
         const files = result.resources.map(file => {
-            const originalName =
-                file.context?.custom?.original_filename ||
-                file.public_id.replace(/^[^-]+-[^-]+-/, "");
 
             return {
-                original_filename: originalName,
+                original_filename: getOriginalFilename(file),
+
                 public_id: file.public_id,
-                url: cloudinary.url(file.public_id, {
-                    resource_type: "raw",
-                    secure: true,
-                    flags: "attachment"
-                }),
+
                 size: file.bytes,
-                created_at: file.created_at
+
+                created_at: file.created_at,
+
+                url: "/download?public_id=" +
+                    encodeURIComponent(file.public_id)
             };
+
         });
 
         res.json(files);
 
     } catch (error) {
+
         console.error("File listing error:", error);
 
         res.status(500).json({
@@ -192,34 +283,85 @@ app.get("/files", async (req, res) => {
     }
 });
 
-// =============== DOWNLOAD ===============
+// =============== DOWNLOAD FILE ===============
 
 app.get("/download", async (req, res) => {
+
     try {
+
         const publicId = req.query.public_id;
 
         if (!publicId || typeof publicId !== "string") {
             return res.status(400).send("Invalid file ID.");
         }
 
-        const downloadUrl = cloudinary.url(publicId, {
-            resource_type: "raw",
-            secure: true,
-            flags: "attachment"
-        });
+        // Verify the file exists in our Cloudinary account
+        const resource = await cloudinary.api.resource(
+            publicId,
+            {
+                resource_type: "raw",
+                type: "upload"
+            }
+        );
 
-        res.redirect(downloadUrl);
+        if (!resource.secure_url) {
+            return res.status(404).send("File URL not found.");
+        }
+
+        // Download file through the server
+        const cloudResponse = await fetch(resource.secure_url);
+
+        if (!cloudResponse.ok) {
+            throw new Error(
+                "Cloudinary returned HTTP " + cloudResponse.status
+            );
+        }
+
+        const buffer = Buffer.from(
+            await cloudResponse.arrayBuffer()
+        );
+
+        const originalName = getOriginalFilename(resource);
+
+        // Safe download filename
+        const asciiName = originalName
+            .replace(/[^\x20-\x7E]/g, "_")
+            .replace(/["\\]/g, "_");
+
+        const encodedName = encodeURIComponent(originalName);
+
+        res.setHeader(
+            "Content-Type",
+            "application/octet-stream"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`
+        );
+
+        res.setHeader("Content-Length", buffer.length);
+
+        res.setHeader("Cache-Control", "no-store");
+
+        res.send(buffer);
 
     } catch (error) {
+
         console.error("Download error:", error);
-        res.status(500).send("Download failed.");
+
+        res.status(500).send(
+            "Download failed: " + error.message
+        );
     }
 });
 
-// =============== DELETE ===============
+// =============== DELETE FILE ===============
 
 app.post("/delete", async (req, res) => {
+
     try {
+
         const { public_id, adminPassword } = req.body;
 
         if (adminPassword !== ADMIN_PASSWORD) {
@@ -236,16 +378,19 @@ app.post("/delete", async (req, res) => {
             });
         }
 
-        const result = await cloudinary.uploader.destroy(public_id, {
-            resource_type: "raw",
-            type: "upload",
-            invalidate: true
-        });
+        const result = await cloudinary.uploader.destroy(
+            public_id,
+            {
+                resource_type: "raw",
+                type: "upload",
+                invalidate: true
+            }
+        );
 
         if (result.result !== "ok") {
             return res.status(404).json({
                 success: false,
-                message: "File not found or already deleted."
+                message: "File not found."
             });
         }
 
@@ -255,6 +400,7 @@ app.post("/delete", async (req, res) => {
         });
 
     } catch (error) {
+
         console.error("Delete error:", error);
 
         res.status(500).json({
@@ -267,20 +413,22 @@ app.post("/delete", async (req, res) => {
 // =============== ERROR HANDLER ===============
 
 app.use((error, req, res, next) => {
+
     console.error("Server error:", error);
 
     if (error instanceof multer.MulterError) {
+
         return res.status(400).json({
             success: false,
             message: error.code === "LIMIT_FILE_SIZE"
-                ? "File exceeds the 100 MB upload limit."
+                ? "File exceeds 100 MB limit."
                 : error.message
         });
     }
 
     res.status(500).json({
         success: false,
-        message: "Something went wrong."
+        message: "Internal server error."
     });
 });
 
